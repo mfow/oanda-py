@@ -1,0 +1,67 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-16.04'
+strategy:
+  matrix:
+    Python35:
+      python.version: '3.5'
+    Python36:
+      python.version: '3.6'
+    Python37:
+      python.version: '3.7'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(python.version)'
+  displayName: 'Use Python $(python.version)'
+
+- script: |
+    pip3 install mypy  
+  displayName: 'Install mypy'
+
+
+- script: |
+    mypy -m v20  
+  displayName: 'Run mypy'
+  workingDirectory: src
+  continueOnError: true
+
+#- script: |
+#    python -m pip install --upgrade pip
+#    pip install -r requirements.txt
+#  displayName: 'Install dependencies'
+#  workingDirectory: src
+
+#- script: |
+#    pip install pytest pytest-azurepipelines
+#    pytest
+#  displayName: 'pytest'
+
+- task: PythonScript@0
+  displayName: 'Build package'
+  inputs:
+    scriptPath: src/setup.py
+    arguments: bdist_egg
+    workingDirectory: src
+
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: 'src/dist'
+    Contents: '**.egg'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+  displayName: 'Copy egg file to artifact directory'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'egg'
+    publishLocation: 'Container'
+  displayName: 'Publish egg file'
